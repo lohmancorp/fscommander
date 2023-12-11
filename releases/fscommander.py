@@ -40,7 +40,7 @@ interrupted = False
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Script to read and sort FreshService tickets.\n')
     parser.add_argument('-g', '--get-tickets', required=False, choices=['mine', 'mine_focused', 'group', 'group_focused'], help='\nTells the script which set of tickets to retrieve.')
-    parser.add_argument('-o', '--output', choices=['json', 'table'], default='json', help='Output format: json or table')
+    parser.add_argument('-o', '--output', choices=['json', 'table', 'html'], default='json', help='Output format: json, table, or html')
     parser.add_argument('-m', '--mode', required=True, choices=['staging', 'production', 'test'], help='API mode: staging, production, or test.')
     parser.add_argument('-f', '--file', required=False, help='Path to JSON file for test mode.')
     parser.add_argument('-t', '--time-wait', type=int, required=True, help='Time in milliseconds to wait between API calls.')
@@ -170,7 +170,7 @@ def get_my_tickets(base_url, headers):
         logging.error("AGENT_ID not found in .env file.")
         sys.exit("AGENT_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR status: 3 OR status: 6 OR status: 7 OR status: 8 OR status: 9 OR status: 10 OR status: 11 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR agent_id: {agent_id} AND status: 3 OR agent_id: {agent_id} AND status: 6 OR agent_id: {agent_id} AND status: 7 OR agent_id: {agent_id} AND status: 8 OR agent_id: {agent_id} AND status: 9 OR agent_id: {agent_id} AND status: 10 OR agent_id: {agent_id} AND status: 11 OR agent_id: {agent_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -187,7 +187,7 @@ def get_my_tickets_focused(base_url, headers):
         logging.error("AGENT_ID not found in .env file.")
         sys.exit("AGENT_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR status: 6 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR agent_id: {agent_id} AND status: 6 OR agent_id: {agent_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -204,7 +204,7 @@ def get_my_groups_tickets(base_url, headers):
         logging.error("GROUP_ID not found in .env file.")
         sys.exit("GROUP_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR status: 3 OR status: 6 OR status: 7 OR status: 8 OR status: 9 OR status: 10 OR status: 11 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR group_id: {group_id} AND status: 3 OR group_id: {group_id} AND status: 6 OR group_id: {group_id} AND status: 7 OR group_id: {group_id} AND status: 8 OR group_id: {group_id} AND status: 9 OR group_id: {group_id} AND status: 10 OR group_id: {group_id} AND status: 11 OR group_id: {group_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -221,7 +221,7 @@ def get_my_groups_tickets_focused(base_url, headers):
         logging.error("GROUP_ID not found in .env file.")
         sys.exit("GROUP_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR status: 6 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR group_id: {group_id} AND status: 6 OR group_id: {group_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -438,7 +438,79 @@ def display_as_table(tickets, company_names):
 
         table.add_row(row)
 
-    print(table)
+    print(table)    
+    
+# Function to display tickets as HTML table
+def display_as_html(tickets, company_names):
+    
+    if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+            log_level = 'DEBUG'
+            
+    # Define the HTML table header
+    html_table = """
+
+        <tr>
+            <th>#</th>
+            <th>Ticket ID</th>
+            <th>Company Name</th>
+            <th>Subject</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Escalated</th>
+            <th>Environment</th>
+            <th>Tier</th>
+            <th>Type</th>
+            <th>Created</th>
+            <th>Score</th>
+        </tr>
+    """
+
+    for index, ticket in enumerate(tickets, start=1):
+        # Convert Zulu time to local time and truncate subject and company name
+        created_at_local = datetime.strptime(ticket['created_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        subject_truncated = (ticket['subject'][:47] + '...') if len(ticket['subject']) > 50 else ticket['subject']
+        
+        # Call to lookup company name.
+        company_name = company_names.get(ticket['department_id'], 'Unknown')
+        company_name_truncated = (company_name[:27] + '...') if len(company_name) > 30 else company_name
+        
+
+        # Extract environment and account_tier values
+        environment = ticket['custom_fields'].get('environment')
+        account_tier = ticket['custom_fields'].get('account_tier')
+
+        # Handle None values
+        if environment is None:
+            environment_display = 'Production'
+        else:
+            environment_display = environment
+
+        if account_tier is None:
+            account_tier_display = 'C'
+        else:
+            account_tier_display = account_tier
+
+        # Prepare an HTML row with truncated subject and company name
+        row = f"""
+        <tr>
+            <td>{index}</td>
+            <td><a href="https://support.cloudblue.com/a/tickets/{ticket['id']}" target="_blank">{ticket['id']}</a></td>
+            <td>{company_name_truncated}</td>
+            <td>{subject_truncated}</td>
+            <td>{ticket['priority']}</td>
+            <td>{ticket['status']}</td>
+            <td>{ticket['is_escalated']}</td>
+            <td>{environment_display}</td>
+            <td>{account_tier_display}</td>
+            <td>{ticket['custom_fields']['ticket_type']}</td>
+            <td>{created_at_local}</td>
+            <td>{ticket.get('score', 'N/A')}</td>
+        </tr>
+        """
+
+        html_table += row
+
+    print(html_table)
 
 
 # Function to read JSON file and return a list of tickets
@@ -519,6 +591,9 @@ def main():
     elif args.output == 'table':
         # Pass company_names to display_as_table
         display_as_table(readable_tickets, company_names)
+    elif args.output == 'html':
+        # Pass company_names to display_as_table
+        display_as_html(readable_tickets, company_names)    
 
 if __name__ == "__main__":
     main()

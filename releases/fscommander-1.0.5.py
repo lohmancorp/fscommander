@@ -40,7 +40,7 @@ interrupted = False
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Script to read and sort FreshService tickets.\n')
     parser.add_argument('-g', '--get-tickets', required=False, choices=['mine', 'mine_focused', 'group', 'group_focused'], help='\nTells the script which set of tickets to retrieve.')
-    parser.add_argument('-o', '--output', choices=['json', 'table'], default='json', help='Output format: json or table')
+    parser.add_argument('-o', '--output', choices=['json', 'table', 'html'], default='json', help='Output format: json, table, or html')
     parser.add_argument('-m', '--mode', required=True, choices=['staging', 'production', 'test'], help='API mode: staging, production, or test.')
     parser.add_argument('-f', '--file', required=False, help='Path to JSON file for test mode.')
     parser.add_argument('-t', '--time-wait', type=int, required=True, help='Time in milliseconds to wait between API calls.')
@@ -438,8 +438,62 @@ def display_as_table(tickets, company_names):
 
         table.add_row(row)
 
-    print(table)
+    print(table)    
+    
+# Function to display the data as HTML table.
+def display_as_html(tickets, company_names):
+    # Define the HTML table header
+    html_table = """
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Department ID</th>
+            <th>Company Name</th>
+            <th>Subject</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Is Escalated</th>
+            <th>Environment</th>
+            <th>Account Tier</th>
+            <th>Ticket Type</th>
+            <th>Created At</th>
+            <th>Score</th>
+        </tr>
+    """
 
+    for ticket in tickets:
+        # Convert Zulu time to local time and truncate subject and company name
+        created_at_local = datetime.strptime(ticket['created_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        subject_truncated = (ticket['subject'][:47] + '...') if len(ticket['subject']) > 50 else ticket['subject']
+        
+        # Call to lookup company name.
+        company_name = company_names.get(ticket['department_id'], 'Unknown')
+        company_name_truncated = (company_name[:27] + '...') if len(company_name) > 30 else company_name
+
+        # Prepare an HTML row with truncated subject and company name
+        row = f"""
+        <tr>
+            <td><a href='https://support.cloudblue.com/a/tickets/{ticket['id']}'>{ticket['id']}</a></td>
+            <td>{ticket['department_id']}</td>
+            <td>{company_name_truncated}</td>
+            <td>{subject_truncated}</td>
+            <td>{ticket['priority']}</td>
+            <td>{ticket['status']}</td>
+            <td>{ticket['is_escalated']}</td>
+            <td>{ticket['custom_fields'].get('environment', 'Production')}</td>
+            <td>{ticket['custom_fields'].get('account_tier', 'C')}</td>
+            <td>{ticket['custom_fields']['ticket_type']}</td>
+            <td>{created_at_local}</td>
+            <td>{ticket.get('score', 'N/A')}</td>
+        </tr>
+        """
+
+        html_table += row
+
+    # Close the HTML table
+    html_table += "</table>"
+    
+    return html_table
 
 # Function to read JSON file and return a list of tickets
 def read_json_file(file_path):
@@ -519,6 +573,9 @@ def main():
     elif args.output == 'table':
         # Pass company_names to display_as_table
         display_as_table(readable_tickets, company_names)
+    elif args.output == 'html':
+        # Pass company_names to display_as_table
+        display_as_html(readable_tickets, company_names)    
 
 if __name__ == "__main__":
     main()

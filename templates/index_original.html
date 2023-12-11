@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FS Commander</title>
+</head>
+<body>
+    <h1>FS Commander</h1>
+    <form method="POST">
+        <label for="get_tickets">Get Tickets:</label>
+        <select name="get_tickets" id="get_tickets">
+            <option value="mine">Mine</option>
+            <option value="mine_focused">Mine Focused</option>
+            <option value="group">Group</option>
+            <option value="group_focused">Group Focused</option>
+        </select>
+        <br>
+        <label for="output">Output Format:</label>
+        <select name="output" id="output">
+            <option value="html">HTML</option>
+            <option value="json">JSON</option>
+            <option value="table">Table</option>
+        </select>
+        <br>
+        <label for="mode" style="display:none;">API Mode:</label>
+        <select name="mode" id="mode" style="display:none;">
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+            <option value="test">Test</option>
+        </select>
+        <br>
+        <label for="file" style="display:none;">Path to JSON File (for Test Mode):</label>
+        <input type="text" name="file" id="file" style="display:none;">
+        <br>
+        <label for="time_wait" style="display:none;">Time Wait (in milliseconds):</label>
+        <input type="number" name="time_wait" id="time_wait" value="200" required style="display:none;">
+        <br>
+        <label for="log_level">Log Level:</label>
+        <select name="log_level" id="log_level">
+            <option value="WARNING">WARNING</option>
+            <option value="DEBUG">DEBUG</option>
+        </select>
+        <br>
+        <label for="version" style="display:none;">Version:</label>
+        <input type="text" name="version" id="version" value="{{ version }}" readonly style="display:none;">
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
