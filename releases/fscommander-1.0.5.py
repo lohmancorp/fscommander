@@ -493,7 +493,7 @@ def display_as_html(tickets, company_names):
     # Close the HTML table
     html_table += "</table>"
     
-    return html_table
+    print(html_table.encode('utf-8'))
 
 # Function to read JSON file and return a list of tickets
 def read_json_file(file_path):
