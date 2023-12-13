@@ -343,6 +343,8 @@ SCORING_MAP = {
     ('E', 1, 'Production', 'Service request'): 2,
     ('E', 1, 'Lab', 'Service request'): 1
 }
+import logging
+
 # Function that performs the scoring against the SCORING_MAP
 def calculate_sort_key(ticket):
     # Extract values from ticket
@@ -350,7 +352,7 @@ def calculate_sort_key(ticket):
     environment = ticket['custom_fields'].get('environment')
     priority = ticket['priority']
     ticket_type = ticket['custom_fields']['ticket_type']
-    is_escalated = ticket['is_escalated']
+    is_escalated = ticket['custom_fields']['escalated']
 
     # Log warning and assign default values if account_tier or environment is missing
     if account_tier is None:
@@ -359,12 +361,19 @@ def calculate_sort_key(ticket):
     if environment is None:
         logging.warning(f"Ticket ID: {ticket['id']} does not have an environment defined. Default value 'Production' used.")
         environment = 'Production'
+        
+    # Initialize fixed_is_escalated to False before the if statement
+    fixed_is_escalated = False
+
+    if is_escalated == "Yes":
+        fixed_is_escalated = True
 
     # Determine score key based on whether the ticket is escalated
-    if is_escalated:
+    if fixed_is_escalated is True:
         score_key = (account_tier, 'escalated', environment)
     else:
         score_key = (account_tier, priority, environment, ticket_type)
+
 
     # Get the score from the map
     score = SCORING_MAP.get(score_key, 0)
@@ -397,7 +406,7 @@ def display_as_json(tickets):
 # Function to display tickets in table format
 def display_as_table(tickets, company_names):
     # Initialize the table with the basic columns
-    field_names = ["id", "department_id", "company_name", "subject", "priority", "status", "is_escalated", "environment", "account_tier", "ticket_type", "created_at", "updated_at", "due_by"]
+    field_names = ["id", "department_id", "company_name", "subject", "priority", "status", "escalated", "environment", "account_tier", "ticket_type", "created_at", "updated_at", "due_by"]
     
     if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
         field_names.append("Score")
@@ -428,7 +437,7 @@ def display_as_table(tickets, company_names):
             subject_truncated,
             ticket['priority'],
             ticket['status'],
-            ticket['is_escalated'],
+            ticket['custom_fields'].get('escalated', False),
             ticket['custom_fields'].get('environment', 'Production'),
             ticket['custom_fields'].get('account_tier', 'C'),
             ticket['custom_fields']['ticket_type'],
@@ -482,10 +491,11 @@ def display_as_html(tickets, company_names):
         company_name = company_names.get(ticket['department_id'], 'Unknown')
         company_name_truncated = (company_name[:27] + '...') if len(company_name) > 30 else company_name
         
-
+        escalated_display = None
         # Extract environment and account_tier values
         environment = ticket['custom_fields'].get('environment')
         account_tier = ticket['custom_fields'].get('account_tier')
+        escalated = ticket['custom_fields'].get('escalated')
 
         # Handle None values
         if environment is None:
@@ -497,6 +507,11 @@ def display_as_html(tickets, company_names):
             account_tier_display = 'C'
         else:
             account_tier_display = account_tier
+            
+        if escalated is None:
+            escalated_display = 'No'
+        else:
+            escalated_display = 'Yes'    
 
         # Prepare an HTML row with truncated subject and company name, making the entire row clickable
         row = f"""
@@ -507,7 +522,7 @@ def display_as_html(tickets, company_names):
             <td>{subject_truncated}</td>
             <td>{ticket['priority']}</td>
             <td>{ticket['status']}</td>
-            <td>{ticket['is_escalated']}</td>
+            <td>{escalated_display}</td>
             <td>{environment_display}</td>
             <td>{account_tier_display}</td>
             <td>{ticket['custom_fields']['ticket_type']}</td>
