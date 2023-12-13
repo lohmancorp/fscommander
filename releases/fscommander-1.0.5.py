@@ -440,60 +440,87 @@ def display_as_table(tickets, company_names):
 
     print(table)    
     
-# Function to display the data as HTML table.
+# Function to display tickets as HTML table
 def display_as_html(tickets, company_names):
+    
+    if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+        log_level = 'DEBUG'
+            
     # Define the HTML table header
     html_table = """
-    <table border="1">
+
         <tr>
-            <th>ID</th>
-            <th>Department ID</th>
+            <th>#</th>
+            <th>Ticket ID</th>
             <th>Company Name</th>
             <th>Subject</th>
             <th>Priority</th>
             <th>Status</th>
-            <th>Is Escalated</th>
+            <th>Escalated</th>
             <th>Environment</th>
-            <th>Account Tier</th>
-            <th>Ticket Type</th>
-            <th>Created At</th>
+            <th>Tier</th>
+            <th>Type</th>
+            <th>Created</th>
+            <th>Last Update</th>
+            <th>Due By</th>
             <th>Score</th>
         </tr>
     """
 
-    for ticket in tickets:
+    for index, ticket in enumerate(tickets, start=1):
         # Convert Zulu time to local time and truncate subject and company name
         created_at_local = datetime.strptime(ticket['created_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        updated_at_local = datetime.strptime(ticket['updated_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        due_by_local = datetime.strptime(ticket['due_by'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
         subject_truncated = (ticket['subject'][:47] + '...') if len(ticket['subject']) > 50 else ticket['subject']
         
         # Call to lookup company name.
         company_name = company_names.get(ticket['department_id'], 'Unknown')
         company_name_truncated = (company_name[:27] + '...') if len(company_name) > 30 else company_name
+        
+
+        # Extract environment and account_tier values
+        environment = ticket['custom_fields'].get('environment')
+        account_tier = ticket['custom_fields'].get('account_tier')
+
+        # Handle None values
+        if environment is None:
+            environment_display = 'Production'
+        else:
+            environment_display = environment
+
+        if account_tier is None:
+            account_tier_display = 'C'
+        else:
+            account_tier_display = account_tier
 
         # Prepare an HTML row with truncated subject and company name
         row = f"""
         <tr>
-            <td><a href='https://support.cloudblue.com/a/tickets/{ticket['id']}'>{ticket['id']}</a></td>
-            <td>{ticket['department_id']}</td>
+            <td>{index}</td>
+            <td><a href="https://support.cloudblue.com/a/tickets/{ticket['id']}" target="_blank">{ticket['id']}</a></td>
             <td>{company_name_truncated}</td>
             <td>{subject_truncated}</td>
             <td>{ticket['priority']}</td>
             <td>{ticket['status']}</td>
             <td>{ticket['is_escalated']}</td>
-            <td>{ticket['custom_fields'].get('environment', 'Production')}</td>
-            <td>{ticket['custom_fields'].get('account_tier', 'C')}</td>
+            <td>{environment_display}</td>
+            <td>{account_tier_display}</td>
             <td>{ticket['custom_fields']['ticket_type']}</td>
             <td>{created_at_local}</td>
+            <td>{updated_at_local}</td>
+            <td>{due_by_local}</td>
             <td>{ticket.get('score', 'N/A')}</td>
         </tr>
         """
 
         html_table += row
 
-    # Close the HTML table
-    html_table += "</table>"
-    
-    print(html_table.encode('utf-8'))
+    # Remove leading/trailing whitespace
+    html_table = html_table.strip()
+
+    # Use sys.stdout to print the HTML table
+    sys.stdout.buffer.write(html_table.encode('utf-8'))
 
 # Function to read JSON file and return a list of tickets
 def read_json_file(file_path):
