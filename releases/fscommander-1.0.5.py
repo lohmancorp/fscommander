@@ -538,8 +538,8 @@ def display_as_html(tickets, company_names):
     # Remove leading/trailing whitespace
     html_table = html_table.strip()
 
-    # Use sys.stdout to print the HTML table
-    sys.stdout.buffer.write(html_table.encode('utf-8'))
+    # Use sys.stdout.buffer to print the HTML table with UTF-8 encoding and handle errors
+    sys.stdout.buffer.write(html_table.encode('utf-8', errors='ignore'))
 
 # Function to read JSON file and return a list of tickets
 def read_json_file(file_path):
