@@ -35,6 +35,7 @@ SCRIPT_VERSION = '1.0.5'  # Update with each release.
 # Global variables for tracking
 original_time_wait = None
 interrupted = False
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Argument Parsing 
 def parse_arguments():
