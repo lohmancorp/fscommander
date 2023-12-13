@@ -170,7 +170,7 @@ def get_my_tickets(base_url, headers):
         logging.error("AGENT_ID not found in .env file.")
         sys.exit("AGENT_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR status: 3 OR status: 6 OR status: 7 OR status: 8 OR status: 9 OR status: 10 OR status: 11 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR agent_id: {agent_id} AND status: 3 OR agent_id: {agent_id} AND status: 6 OR agent_id: {agent_id} AND status: 7 OR agent_id: {agent_id} AND status: 8 OR agent_id: {agent_id} AND status: 9 OR agent_id: {agent_id} AND status: 10 OR agent_id: {agent_id} AND status: 11 OR agent_id: {agent_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -187,7 +187,7 @@ def get_my_tickets_focused(base_url, headers):
         logging.error("AGENT_ID not found in .env file.")
         sys.exit("AGENT_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR status: 6 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"agent_id: {agent_id} AND status: 2 OR agent_id: {agent_id} AND status: 6 OR agent_id: {agent_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -204,7 +204,7 @@ def get_my_groups_tickets(base_url, headers):
         logging.error("GROUP_ID not found in .env file.")
         sys.exit("GROUP_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR status: 3 OR status: 6 OR status: 7 OR status: 8 OR status: 9 OR status: 10 OR status: 11 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR group_id: {group_id} AND status: 3 OR group_id: {group_id} AND status: 6 OR group_id: {group_id} AND status: 7 OR group_id: {group_id} AND status: 8 OR group_id: {group_id} AND status: 9 OR group_id: {group_id} AND status: 10 OR group_id: {group_id} AND status: 11 OR group_id: {group_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -221,7 +221,7 @@ def get_my_groups_tickets_focused(base_url, headers):
         logging.error("GROUP_ID not found in .env file.")
         sys.exit("GROUP_ID not set in .env file. Please set it and try again.")
 
-    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR status: 6 OR status: 12\""
+    url = f"{base_url}/tickets/filter?query=\"group_id: {group_id} AND status: 2 OR group_id: {group_id} AND status: 6 OR group_id: {group_id} AND status: 12\"&per_page=100"
     response = make_api_request("GET", url, headers)
 
     if response.status_code != 200:
@@ -397,7 +397,7 @@ def display_as_json(tickets):
 # Function to display tickets in table format
 def display_as_table(tickets, company_names):
     # Initialize the table with the basic columns
-    field_names = ["id", "department_id", "company_name", "subject", "priority", "status", "is_escalated", "environment", "account_tier", "ticket_type", "created_at"]
+    field_names = ["id", "department_id", "company_name", "subject", "priority", "status", "is_escalated", "environment", "account_tier", "ticket_type", "created_at", "updated_at", "due_by"]
     
     if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
         field_names.append("Score")
@@ -412,6 +412,8 @@ def display_as_table(tickets, company_names):
     for ticket in tickets:
         # Convert Zulu time to local time and truncate subject and company name
         created_at_local = datetime.strptime(ticket['created_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        updated_at_local = datetime.strptime(ticket['updated_at'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
+        due_by_local = datetime.strptime(ticket['due_by'], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d %H:%M:%S")
         subject_truncated = (ticket['subject'][:47] + '...') if len(ticket['subject']) > 50 else ticket['subject']
         
         #Call to lookup company name.
@@ -431,6 +433,8 @@ def display_as_table(tickets, company_names):
             ticket['custom_fields'].get('account_tier', 'C'),
             ticket['custom_fields']['ticket_type'],
             created_at_local,
+            updated_at_local,
+            due_by_local,
         ]
         
         if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
@@ -494,11 +498,11 @@ def display_as_html(tickets, company_names):
         else:
             account_tier_display = account_tier
 
-        # Prepare an HTML row with truncated subject and company name
+        # Prepare an HTML row with truncated subject and company name, making the entire row clickable
         row = f"""
-        <tr>
+        <tr onclick="window.open('https://support.cloudblue.com/a/tickets/{ticket['id']}', '_blank');">
             <td>{index}</td>
-            <td><a href="https://support.cloudblue.com/a/tickets/{ticket['id']}" target="_blank">{ticket['id']}</a></td>
+            <td>{ticket['id']}</td>
             <td>{company_name_truncated}</td>
             <td>{subject_truncated}</td>
             <td>{ticket['priority']}</td>
