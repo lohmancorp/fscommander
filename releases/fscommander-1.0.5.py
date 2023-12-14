@@ -516,7 +516,7 @@ def display_as_html(tickets, company_names):
 
         # Prepare an HTML row with truncated subject and company name, making the entire row clickable
         row = f"""
-        <tr onclick="window.open('https://support.cloudblue.com/a/tickets/{ticket['id']}', '_blank');">
+        <tr onclick="window.open('https://support.cloudblue.com/a/tickets/{ticket['id']}', '_blank');" style="cursor: pointer;">
             <td>{index}</td>
             <td>{ticket['id']}</td>
             <td>{company_name_truncated}</td>
